@@ -104,3 +104,31 @@ export type WhatIfResult = {
   limits_before: LimitItem[];
   limits_after: LimitItem[];
 };
+
+export type ValidatorReport = {
+  ok: boolean;
+  attempts: number;
+  errors: string[];
+  model: string;
+  trace_id: string | null;
+  draft: Record<string, unknown> | null;
+};
+
+export type Commentary = {
+  as_of: string;
+  status: "draft" | "needs_review" | "approved";
+  draft_md: string | null;
+  final_md: string | null;
+  validator_report: ValidatorReport | null;
+  approved_by: string | null;
+  approved_at: string | null;
+};
+
+export type CommentaryDates = { items: { as_of: string; status: Commentary["status"] }[] };
+
+export type ChatEvent =
+  | { type: "text"; text: string }
+  | { type: "tool_call"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_result"; id: string; name: string; ok: boolean; preview: string }
+  | { type: "done"; trace_id: string; tool_calls: number }
+  | { type: "error"; message: string };

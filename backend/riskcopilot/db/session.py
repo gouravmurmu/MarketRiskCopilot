@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 
 def make_engine(url: str) -> Engine:
-    # Supabase hands out postgres:// URLs; SQLAlchemy wants an explicit driver.
+    # Neon and Supabase hand out postgres(ql):// URLs; SQLAlchemy wants an explicit driver.
     if url.startswith("postgres://"):
         url = "postgresql+psycopg://" + url[len("postgres://") :]
     elif url.startswith("postgresql://"):

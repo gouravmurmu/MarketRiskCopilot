@@ -1,0 +1,12 @@
+[
+  {"as_of": "2020-03-09", "why": "COVID sell-off and oil price war: volatility spike, likely backtest exceptions"},
+  {"as_of": "2020-03-16", "why": "Largest equity drop since 1987: limits under pressure"},
+  {"as_of": "2022-06-13", "why": "CPI shock: rates and equities fall together, correlation effect"},
+  {"as_of": "2023-03-13", "why": "SVB weekend: Treasury rally, credit spreads widen"},
+  {"as_of": "2024-08-05", "why": "Yen carry unwind: VIX spike from a calm regime"},
+  {"as_of": "2025-04-04", "why": "Tariff shock: broad equity sell-off"},
+  {"as_of": "2026-09-15", "why": "Simulated NVDA +$750k trade: position effect"},
+  {"as_of": "2026-10-01", "why": "Simulated GLD +$650k trade: commodities limit use"},
+  {"as_of": "2026-10-20", "why": "Simulated TLT +$900k trade: rates limit use"},
+  {"as_of": "2026-10-29", "why": "Recent quiet day: window roll dominates"}
+]

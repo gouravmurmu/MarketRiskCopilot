@@ -1,0 +1,34 @@
+name: Copilot eval
+
+# Manual only: drafts commentary for the golden dates with the Claude API (costs money).
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: "Comma-separated dates (YYYY-MM-DD). Leave empty for the golden set."
+        required: false
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --no-dev
+      - run: uv run python -m riskcopilot.agent.eval --out eval.md ${{ inputs.dates && format('--dates {0}', inputs.dates) || '' }}
+      - run: cat eval.md >> "$GITHUB_STEP_SUMMARY"
+        if: always()
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: copilot-eval
+          path: backend/eval.md

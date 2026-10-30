@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Copilot } from "@/components/copilot";
 import { Nav } from "@/components/nav";
 import { SelectionProvider } from "@/components/selection";
 import "./globals.css";
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <footer className="mx-auto max-w-[1360px] px-4 pb-10 text-xs text-ink-muted sm:px-6">
             Educational project on public data. Not investment advice. Not affiliated with any employer.
           </footer>
+          <Copilot />
         </SelectionProvider>
       </body>
     </html>

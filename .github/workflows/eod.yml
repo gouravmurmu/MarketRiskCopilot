@@ -23,6 +23,7 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
       - name: Check secrets
         id: guard
@@ -44,3 +45,8 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
       - run: uv run python -m riskcopilot.jobs.eod ${{ inputs.as_of && format('--as-of {0}', inputs.as_of) || '' }}
         if: steps.guard.outputs.skip != 'true'
+      - name: Draft the daily commentary
+        # Optional: needs the ANTHROPIC_API_KEY secret. A failure here never fails the risk run.
+        if: steps.guard.outputs.skip != 'true' && env.ANTHROPIC_API_KEY != ''
+        continue-on-error: true
+        run: uv run python -m riskcopilot.agent.daily ${{ inputs.as_of && format('--as-of {0}', inputs.as_of) || '' }}

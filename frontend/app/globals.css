@@ -50,3 +50,43 @@ main p a {
     transition-duration: 1ms !important;
   }
 }
+
+/* Rendered markdown (commentary and copilot answers). */
+.md {
+  @apply text-[15px] leading-relaxed text-ink-2;
+}
+.md h2 {
+  @apply mb-3 text-lg font-bold tracking-tight text-ink;
+}
+.md h3 {
+  @apply mb-2 mt-5 text-[13px] font-bold uppercase tracking-wider text-sage-600;
+}
+.md p {
+  @apply my-2;
+}
+.md strong {
+  @apply font-semibold text-ink;
+}
+.md ul {
+  @apply my-2 list-disc space-y-1.5 pl-5 marker:text-sage-400;
+}
+.md table {
+  @apply my-2 w-full border-collapse text-sm;
+  font-variant-numeric: tabular-nums;
+}
+.md th {
+  @apply border-b border-line py-1.5 pr-3 text-left text-xs font-semibold text-ink-muted;
+}
+.md td {
+  @apply border-b border-line/70 py-1.5 pr-3;
+}
+.md em {
+  @apply text-[13px] text-ink-muted;
+}
+.md-compact {
+  @apply text-sm;
+}
+.md-compact h2,
+.md-compact h3 {
+  @apply mt-2 text-sm normal-case tracking-normal text-ink;
+}
