@@ -22,6 +22,14 @@ jobs:
       - run: uv run mypy riskcopilot
       - run: uv run pytest -q
 
+  docker:
+    # The image Render deploys; builds it and checks the app imports inside it.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t riskcopilot-api backend
+      - run: docker run --rm riskcopilot-api python -c "import riskcopilot.api.main"
+
   frontend:
     runs-on: ubuntu-latest
     defaults:
