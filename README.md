@@ -1,8 +1,8 @@
 # Market Risk Copilot
 
 A daily market risk platform for a sample ~$10M multi-asset portfolio. It computes 1-day
-VaR and Expected Shortfall several ways, backtests every model, checks limits, and (coming
-next) uses an LLM copilot to explain the day's move and draft the risk commentary.
+VaR and Expected Shortfall several ways, backtests every model, checks limits, and uses a
+Claude-powered copilot to explain the day's move and draft the risk commentary.
 
 Deterministic models produce every number. The AI only explains them, and a validator plus
 human sign-off sit between its draft and the final report.
@@ -15,8 +15,8 @@ human sign-off sit between its draft and the final report.
 | Step | Scope | State |
 | --- | --- | --- |
 | 1 | Data pipeline, risk engine, backtests, limits, daily batch | Done |
-| 2 | FastAPI backend and Next.js dashboard | In progress |
-| 3 | AI copilot: daily commentary, validator, sign-off, chat | Planned |
+| 2 | FastAPI backend and Next.js dashboard | Done |
+| 3 | AI copilot: daily commentary, validator, sign-off, chat | In review |
 | 4 | Deployment, monitoring, showcase | Planned |
 
 ## Portfolio
@@ -60,6 +60,37 @@ is idempotent, so reruns replace a day's results. The first run backfills from 2
 
 It runs on GitHub Actions at 00:00 UTC Tuesday to Saturday (`.github/workflows/eod.yml`).
 
+## AI copilot
+
+Built on the Claude API (`claude-opus-5-5`, adaptive thinking) in `backend/riskcopilot/agent/`.
+The model never calculates a number: it reads ten read-only tools over the engine outputs
+(`get_risk_summary`, `get_var_attribution`, `get_top_contributors`, `get_market_moves`,
+`get_macro_context`, `get_limit_status`, `get_backtest_status`, `get_scenario_rolloff`,
+`get_data_quality_issues`, `run_what_if`). `run_what_if` works on a copy of the positions.
+
+**Daily commentary** (`python -m riskcopilot.agent.daily`, runs after the EOD job):
+
+1. Code calls the tools in a fixed order, so the input is identical every run.
+2. Claude returns JSON in a fixed schema (structured outputs); code renders it to markdown.
+3. A numeric validator matches every figure, including those in the prose ($172.4k, 18.1%),
+   to a tool output, checks every warning or breach is reported with the rule engine's status,
+   and rejects tickers outside the portfolio.
+4. Validator errors go back to the model, at most twice; then the draft is marked
+   "needs review".
+5. An analyst edits and approves it on the Commentary page. Approved notes are never redrafted.
+
+**Chat**: a tool-use loop (at most 8 tool calls per question) that streams the answer and
+the tools it called to a side panel on every page. A daily question cap protects the API budget.
+
+Every tool call and model call is logged to `agent_traces` with an output hash, tokens,
+latency and the model that served it. Requests opt into server-side fallbacks, so a declined
+request is retried on Anthropic's recommended fallback model.
+
+`python -m riskcopilot.agent.eval` scores the commentary on ten golden dates (COVID crash,
+2022 CPI shock, SVB, the 2024 yen unwind, the simulated trades): validator pass rate, first-try
+rate, direction of the headline, limits coverage and top-driver coverage. It runs from the
+"Copilot eval" workflow.
+
 ## API
 
 FastAPI, read-only over the risk tables (`uvicorn riskcopilot.api.main:app`, docs at `/docs`):
@@ -77,6 +108,11 @@ FastAPI, read-only over the risk tables (`uvicorn riskcopilot.api.main:app`, doc
 | `GET /data-quality?as_of=` | Issues and latest price dates |
 | `POST /whatif` | VaR, ES and limits after hypothetical exposure changes |
 | `POST /jobs/eod` | Triggers the batch (bearer `EOD_TOKEN`) |
+| `GET /commentary?as_of=` | Daily note, status and validator report |
+| `GET /commentary/dates` | Recent notes and their status |
+| `POST /commentary/generate` | Drafts the note in the background (bearer `EOD_TOKEN`) |
+| `POST /commentary/approve` | Stores the edited note and approver (optional `APPROVE_TOKEN`) |
+| `POST /chat` | Copilot answer as server-sent events |
 
 `docker compose up` starts Postgres and the API locally.
 
@@ -85,14 +121,14 @@ FastAPI, read-only over the risk tables (`uvicorn riskcopilot.api.main:app`, doc
 Next.js in `frontend/` (see its README): overview with VaR/ES tiles, P&L vs VaR chart, limit
 bars and the "why did VaR move?" waterfall; risk breakdown by position; VaR change detail;
 backtest table for every model; a what-if page with sliders that reprices through the API;
-and data quality. It falls back to labelled demo data when the API is unreachable.
+commentary review and sign-off; data quality; and the copilot side panel. It falls back to labelled demo data when the API is unreachable.
 
 ## Local development
 
 ```bash
 cd backend
 uv sync
-uv run pytest            # engine, data-quality and end-to-end job tests
+uv run pytest            # engine, data, job, API and copilot tests (Claude is mocked)
 uv run alembic upgrade head
 uv run python -m riskcopilot.jobs.eod
 ```
@@ -102,5 +138,5 @@ Settings come from environment variables; see `backend/.env.example`. Without
 
 ## Stack
 
-Python 3.12, NumPy, pandas, SciPy, arch, SQLAlchemy 2 and Alembic on Postgres (Supabase).
-FastAPI, Next.js 15 + Tailwind + Recharts. Coming next: the Claude API and Langfuse.
+Python 3.12, NumPy, pandas, SciPy, arch, SQLAlchemy 2 and Alembic on Postgres (Neon).
+FastAPI, the Anthropic Python SDK, Next.js 15 + Tailwind + Recharts.

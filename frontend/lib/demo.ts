@@ -5,6 +5,9 @@
 import type {
   Attribution,
   BacktestRow,
+  ChatEvent,
+  Commentary,
+  CommentaryDates,
   Contributors,
   DataQuality,
   Limits,
@@ -271,4 +274,121 @@ export const demoWhatIf = (req: WhatIfRequest): WhatIfResult => {
     return limitItem(l.scope, Math.max(0, l.value_usd + d), l.limit_usd);
   });
   return { as_of: DEMO_AS_OF, exposures_before: before, exposures_after: after, figures, limits_before: lb, limits_after: la };
+};
+
+const k1 = (v: number) => `${v < 0 ? "-" : ""}$${(Math.abs(v) / 1000).toFixed(1)}k`;
+const sk1 = (v: number) => (v >= 0 ? "+" : "-") + k1(Math.abs(v));
+
+/** Builds the sample note from the same demo figures as the other pages, the way the
+ *  backend renders the model's JSON, so every number on it can be traced. */
+export const demoCommentaryMd = (): string => {
+  const s = demoSummary().figures.find((f) => f.model === "hs_500" && f.confidence === 0.99)!;
+  const a = demoAttribution("hs_500", 0.99);
+  const lim = demoLimits().items;
+  const pos = a.effects.find((e) => e.effect === "position")!.amount_usd;
+  const roll = a.effects.find((e) => e.effect === "window_roll")!.amount_usd;
+  const eq = lim.find((l) => l.scope === "Equity")!;
+  const pf = lim.find((l) => l.scope === "Portfolio")!;
+  const bt = demoBacktests().find((b) => b.model === "hs_500" && b.confidence === 0.99 && b.scope === "rolling_250")!;
+  const chg = (s.change_pct ?? 0) * 100;
+  return [
+    `## Daily risk commentary, ${DEMO_AS_OF}`,
+    "",
+    `**Portfolio 1-day 99% historical VaR rose ${chg.toFixed(1)}% to ${k1(s.var_usd)}, driven mainly by a large loss scenario entering the 500-day window (${sk1(roll)}) and the larger NVDA position (${sk1(pos)}).**`,
+    "",
+    "### VaR summary",
+    "",
+    "| Metric | Value | Change |",
+    "|---|---:|---:|",
+    `| HS 500d VaR 99% 1d | ${k1(s.var_usd)} | +${chg.toFixed(1)}% |`,
+    `| HS 500d ES 99% 1d | ${k1(s.es_usd)} | n/a |`,
+    "",
+    "### What drove the change",
+    "",
+    `- **Window roll** (${sk1(roll)}): today's scenario, a ${k1(171_900)} loss on current positions, entered the window and sits in the VaR tail; the scenario that dropped out was a ${k1(12_400)} loss.`,
+    `- **Position** (${sk1(pos)}): NVDA exposure rose from $500.0k to $750.0k under the simulated trade.`,
+    "",
+    "### Limits",
+    "",
+    "| Scope | Utilisation | Status |",
+    "|---|---:|---|",
+    `| Portfolio | ${(pf.utilisation * 100).toFixed(1)}% | ${pf.status} |`,
+    `| Equity | ${(eq.utilisation * 100).toFixed(1)}% | ${eq.status} |`,
+    "",
+    "### Backtesting",
+    "",
+    `${bt.exceptions} exceptions in the last ${bt.T} days against ${bt.expected.toFixed(1)} expected; the model stays in the ${bt.zone} zone.`,
+    "",
+    "### Market context",
+    "",
+    "Daily volatility rose in QQQ and NVDA; see the parametric attribution for the volatility effect.",
+    "",
+    "### Data caveats",
+    "",
+    "- INR=X was forward-filled for a market holiday.",
+    "",
+    "_Sources: get_risk_summary, get_var_attribution, get_scenario_rolloff, get_limit_status, get_backtest_status, get_data_quality_issues_",
+    "",
+  ].join("\n");
+};
+
+export const demoCommentary = (): Commentary => ({
+  as_of: DEMO_AS_OF,
+  status: "draft",
+  draft_md: demoCommentaryMd(),
+  final_md: null,
+  validator_report: { ok: true, attempts: 1, errors: [], model: "claude-opus-5-5", trace_id: null, draft: null },
+  approved_by: null,
+  approved_at: null,
+});
+
+export const demoCommentaryDates = (): CommentaryDates => ({
+  items: [
+    { as_of: DEMO_AS_OF, status: "draft" },
+    { as_of: PREV, status: "approved" },
+    { as_of: "2026-10-27", status: "approved" },
+    { as_of: "2026-10-26", status: "needs_review" },
+  ],
+});
+
+/** Scripted copilot answers for the demo, built from the demo figures. */
+export const demoChat = (question: string): ChatEvent[] => {
+  const q = question.toLowerCase();
+  const s = demoSummary().figures.find((f) => f.model === "hs_500" && f.confidence === 0.99)!;
+  const tool = (name: string, input: Record<string, unknown> = {}): ChatEvent[] => [
+    { type: "tool_call", id: name, name, input },
+    { type: "tool_result", id: name, name, ok: true, preview: "" },
+  ];
+  if (q.includes("what if") || q.includes("cut") || q.includes("half")) {
+    const w = demoWhatIf({ change_exposure: { NVDA: -375_000 } });
+    const f = w.figures.find((x) => x.model === "hs_500" && x.confidence === 0.99)!;
+    const eq = w.limits_after.find((l) => l.scope === "Equity")!;
+    return [
+      ...tool("run_what_if", { change_exposure: { NVDA: -375_000 } }),
+      { type: "text", text: `Halving NVDA (−$375.0k) would take 1-day 99% HS VaR from ${k1(f.var_before)} to ${k1(f.var_after)}, and Equity limit use to ${(eq.utilisation * 100).toFixed(1)}% (${eq.status}). This is hypothetical; positions are unchanged.\n\nSources: run_what_if` },
+    ];
+  }
+  if (q.includes("limit") || q.includes("breach")) {
+    const l = demoLimits().items;
+    const rows = l.map((x) => `| ${x.scope} | ${(x.utilisation * 100).toFixed(1)}% | ${x.status} |`).join("\n");
+    const warn = l.filter((x) => x.status === "warning").map((x) => x.scope);
+    const breach = l.filter((x) => x.status === "breach").map((x) => x.scope);
+    const lead = `${breach.length ? `${breach.join(" and ")} in breach.` : "No limit is in breach."} ${warn.length ? `${warn.join(" and ")} ${warn.length > 1 ? "are" : "is"} in warning (80% or more of the limit).` : ""}`;
+    return [...tool("get_limit_status"), { type: "text", text: `${lead}\n\n| Scope | Use | Status |\n|---|---:|---|\n${rows}\n\nSources: get_limit_status` }];
+  }
+  if (q.includes("backtest") || q.includes("exception")) {
+    const b = demoBacktests().find((x) => x.model === "hs_500" && x.confidence === 0.99 && x.scope === "rolling_250")!;
+    return [...tool("get_backtest_status"), { type: "text", text: `HS 500d VaR at 99% had ${b.exceptions} exceptions in the last ${b.T} days, against ${b.expected.toFixed(1)} expected, so it is in the ${b.zone} zone.\n\nSources: get_backtest_status` }];
+  }
+  const a = demoAttribution("hs_500", 0.99);
+  return [
+    ...tool("get_risk_summary"),
+    ...tool("get_var_attribution", { model: "hs_500" }),
+    {
+      type: "text",
+      text: `1-day 99% HS VaR is ${k1(s.var_usd)}, up ${((s.change_pct ?? 0) * 100).toFixed(1)}% on the day. ${a.effects
+        .map((e) => `${e.effect.replace("_", " ")} ${sk1(e.amount_usd)}`)
+        .join(", ")}.\n\nSources: get_risk_summary, get_var_attribution`,
+    },
+  ];
 };

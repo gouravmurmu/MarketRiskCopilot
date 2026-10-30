@@ -1,5 +1,5 @@
-"""FastAPI app. Read-only over the risk tables, except what-if (computes, never stores)
-and the token-protected EOD trigger.
+"""FastAPI app. Read-only over the risk tables, except what-if (computes, never stores),
+the token-protected EOD and commentary triggers, commentary approval and the chat copilot.
 
     uvicorn riskcopilot.api.main:app --reload
 """
@@ -7,14 +7,14 @@ and the token-protected EOD trigger.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from riskcopilot.api.routes import controls, meta, risk, whatif
+from riskcopilot.api.routes import controls, copilot, meta, risk, whatif
 from riskcopilot.config import get_settings
 
 
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Market Risk Copilot API",
-        version="0.2.0",
+        version="0.3.0",
         description="Daily VaR/ES, attribution, backtests and limits for a sample portfolio.",
     )
     app.add_middleware(
@@ -23,7 +23,7 @@ def create_app() -> FastAPI:
         allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
-    for r in (meta.router, risk.router, controls.router, whatif.router):
+    for r in (meta.router, risk.router, controls.router, whatif.router, copilot.router):
         app.include_router(r)
     return app
 

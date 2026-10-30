@@ -1,6 +1,6 @@
 """Response and request models. Every risk figure is a positive USD loss number."""
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -175,3 +175,38 @@ class WhatIfResult(BaseModel):
     figures: list[WhatIfFigure]
     limits_before: list[LimitOut]
     limits_after: list[LimitOut]
+
+
+class CommentaryOut(BaseModel):
+    as_of: date
+    status: str  # draft | needs_review | approved
+    draft_md: str | None
+    final_md: str | None
+    validator_report: dict[str, Any] | None
+    approved_by: str | None
+    approved_at: datetime | None
+
+
+class CommentaryDates(BaseModel):
+    items: list[dict[str, Any]]
+
+
+class ApproveRequest(BaseModel):
+    as_of: date
+    final_md: str = Field(min_length=20, max_length=20_000)
+    approved_by: str = Field(min_length=2, max_length=64)
+
+
+class GenerateRequest(BaseModel):
+    as_of: date | None = None
+    force: bool = False
+
+
+class ChatMessage(BaseModel):
+    role: str = Field(pattern="^(user|assistant)$")
+    content: str = Field(max_length=8_000)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=20)
+    as_of: date | None = None

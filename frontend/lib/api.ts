@@ -36,3 +36,33 @@ export function useApi<T>(path: string | null, demo: () => T): Loaded<T> {
   if (!apiConfigured || error) return { data: demo(), demo: true, loading: false };
   return { data, demo: false, loading: isLoading };
 }
+
+/** POST /chat and call onEvent for each server-sent event until the stream ends. */
+export async function streamChat(
+  body: { messages: { role: "user" | "assistant"; content: string }[]; as_of?: string },
+  onEvent: (e: import("./types").ChatEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  if (!BASE) throw new Error("NEXT_PUBLIC_API_URL is not set");
+  const res = await fetch(BASE + "/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  if (!res.ok || !res.body) throw new Error(`${res.status} ${await res.text()}`);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let cut: number;
+    while ((cut = buf.indexOf("\n\n")) >= 0) {
+      const chunk = buf.slice(0, cut);
+      buf = buf.slice(cut + 2);
+      for (const line of chunk.split("\n")) if (line.startsWith("data: ")) onEvent(JSON.parse(line.slice(6)));
+    }
+  }
+}

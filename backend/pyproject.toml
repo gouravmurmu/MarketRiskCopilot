@@ -17,6 +17,7 @@ dependencies = [
     "requests>=2.32",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
+    "anthropic>=2.3.0",
 ]
 
 [dependency-groups]

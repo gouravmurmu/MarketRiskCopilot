@@ -42,7 +42,7 @@ export function DemoBadge({ show }: { show: boolean }) {
   );
 }
 
-export function StatusPill({ status }: { status: string }) {
+export function StatusPill({ status, label }: { status: string; label?: string }) {
   const style =
     status === "breach" || status === "red" || status === "critical"
       ? "bg-coral-100 text-coral-700"
@@ -51,7 +51,7 @@ export function StatusPill({ status }: { status: string }) {
         : status === "info"
           ? "bg-sky-100 text-sky-700"
           : "bg-sage-100 text-sage-700";
-  return <span className={clsx("rounded-full px-2.5 py-0.5 text-xs font-bold capitalize", style)}>{status}</span>;
+  return <span className={clsx("rounded-full px-2.5 py-0.5 text-xs font-bold", !label && "capitalize", style)}>{label ?? status}</span>;
 }
 
 export function PageHeader({ eyebrow, title, demo, children }: {

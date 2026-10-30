@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     # API
     cors_origins: str = "http://localhost:3000"  # comma-separated
     eod_token: str | None = None  # bearer token for POST /jobs/eod
+    approve_token: str | None = None  # optional bearer token for approving commentary
+
+    # AI copilot
+    anthropic_api_key: str | None = None
+    agent_model: str = "claude-opus-5-5"
+    agent_effort: str = "medium"
+    agent_max_tool_calls: int = 8
+    agent_max_retries: int = 2
+    chat_daily_limit: int = 200  # questions per UTC day, protects the API budget
 
 
 @lru_cache
