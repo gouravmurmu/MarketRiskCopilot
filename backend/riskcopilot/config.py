@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     stress_start: str = "2020-02-01"
     stress_end: str = "2021-01-31"
 
+    # API
+    cors_origins: str = "http://localhost:3000"  # comma-separated
+    eod_token: str | None = None  # bearer token for POST /jobs/eod
+
 
 @lru_cache
 def get_settings() -> Settings:

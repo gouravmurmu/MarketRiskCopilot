@@ -1,5 +1,7 @@
 """Returns and portfolio P&L."""
 
+from datetime import date
+
 import numpy as np
 import pandas as pd
 
@@ -21,3 +23,20 @@ def portfolio_pnl(returns: pd.DataFrame, exposures: dict[str, float]) -> pd.Seri
     """Linear P&L: dP_t = w . r_t"""
     w = exposure_vector(exposures, returns.columns)
     return pd.Series(returns.to_numpy() @ w, index=returns.index, name="pnl")
+
+
+def next_day_pnl(returns: pd.DataFrame, books: dict[date, dict[str, float]]) -> pd.Series:
+    """Hypothetical P&L on day t+1 of the positions held on day t, indexed by t.
+
+    This is what a day-t VaR forecast is backtested against.
+    """
+    book_dates = sorted(books)
+    r = returns.to_numpy()
+    out: dict[pd.Timestamp, float] = {}
+    for i, d in enumerate(returns.index[:-1]):
+        effective = [bd for bd in book_dates if bd <= d.date()]
+        if not effective:
+            continue
+        w = exposure_vector(books[effective[-1]], returns.columns)
+        out[d] = float(r[i + 1] @ w)
+    return pd.Series(out, dtype=float)

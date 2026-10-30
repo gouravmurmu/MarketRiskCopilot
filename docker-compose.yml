@@ -1,0 +1,20 @@
+# Local stack: Postgres + API. Then run the EOD job once to backfill:
+#   docker compose run --rm api python -m riskcopilot.jobs.eod
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: riskcopilot
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/riskcopilot
+      FRED_API_KEY: ${FRED_API_KEY:-}
+      CORS_ORIGINS: http://localhost:3000
+    ports: ["8000:8000"]
+    depends_on: [db]
+volumes:
+  pgdata:

@@ -14,8 +14,8 @@ human sign-off sit between its draft and the final report.
 
 | Step | Scope | State |
 | --- | --- | --- |
-| 1 | Data pipeline, risk engine, backtests, limits, daily batch | In review |
-| 2 | FastAPI backend and Next.js dashboard | Planned |
+| 1 | Data pipeline, risk engine, backtests, limits, daily batch | Done |
+| 2 | FastAPI backend and Next.js dashboard | In progress |
 | 3 | AI copilot: daily commentary, validator, sign-off, chat | Planned |
 | 4 | Deployment, monitoring, showcase | Planned |
 
@@ -59,6 +59,26 @@ a critical issue on the as-of date stops the run before any risk number is produ
 is idempotent, so reruns replace a day's results. The first run backfills from 2015.
 
 It runs on GitHub Actions at 00:00 UTC Tuesday to Saturday (`.github/workflows/eod.yml`).
+
+## API
+
+FastAPI, read-only over the risk tables (`uvicorn riskcopilot.api.main:app`, docs at `/docs`):
+
+| Endpoint | Returns |
+| --- | --- |
+| `GET /meta` | Models, primary model, available dates |
+| `GET /portfolio?as_of=` | Positions and notionals |
+| `GET /risk/summary?as_of=` | VaR and ES for every model, with day-over-day change |
+| `GET /risk/history?model=&confidence=&from=&to=` | VaR/ES series with next-day P&L and exceptions |
+| `GET /risk/contributors?as_of=&model=&level=` | Component and marginal VaR |
+| `GET /risk/attribution?as_of=&model=` | Waterfall effects with detail |
+| `GET /backtest?model=&confidence=&scope=` | Kupiec, Christoffersen, traffic light |
+| `GET /limits?as_of=` | Utilisation and status |
+| `GET /data-quality?as_of=` | Issues and latest price dates |
+| `POST /whatif` | VaR, ES and limits after hypothetical exposure changes |
+| `POST /jobs/eod` | Triggers the batch (bearer `EOD_TOKEN`) |
+
+`docker compose up` starts Postgres and the API locally.
 
 ## Local development
 
