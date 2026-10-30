@@ -15,7 +15,6 @@ import time
 from dataclasses import dataclass, field
 from datetime import date
 
-import numpy as np
 import pandas as pd
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -28,6 +27,7 @@ from riskcopilot.db import repo
 from riskcopilot.db.session import make_engine, make_session_factory
 from riskcopilot.engine.backtest import run_backtest
 from riskcopilot.engine.limits import check_limit
+from riskcopilot.engine.returns import next_day_pnl
 from riskcopilot.engine.runner import (
     EVALUATORS,
     RunContext,
@@ -180,18 +180,7 @@ def run_engine_for_date(
 
 def run_backtests(session: Session, returns: pd.DataFrame, as_of: pd.Timestamp) -> None:
     """Compare VaR on day t with the hypothetical P&L on t+1 of day t's positions."""
-    books = repo.position_history(session)
-    book_dates = list(books)
-    r = returns.to_numpy()
-    pnl_next: dict[pd.Timestamp, float] = {}
-    for i, d in enumerate(returns.index[:-1]):
-        effective = [bd for bd in book_dates if bd <= d.date()]
-        if not effective:
-            continue
-        exp = books[effective[-1]]
-        w = np.array([exp.get(c, 0.0) for c in returns.columns])
-        pnl_next[d] = float(r[i + 1] @ w)
-    pnl = pd.Series(pnl_next)
+    pnl = next_day_pnl(returns, repo.position_history(session))
 
     rows = []
     for model in EVALUATORS:

@@ -128,6 +128,20 @@ def load_raw_prices(session: Session) -> pd.DataFrame:
     return wide.sort_index()
 
 
+def load_returns(session: Session) -> pd.DataFrame:
+    """Cleaned simple returns, rows = dates, columns = tickers in reference order."""
+    q = select(m.InstrumentRow.ticker, m.Return.date, m.Return.simple_ret).join(
+        m.InstrumentRow, m.InstrumentRow.id == m.Return.instrument_id
+    )
+    df = pd.DataFrame(session.execute(q).all(), columns=["ticker", "date", "r"])
+    if df.empty:
+        return pd.DataFrame()
+    wide = df.pivot(index="date", columns="ticker", values="r")
+    wide.index = pd.DatetimeIndex(wide.index)
+    order = [i.ticker for i in reference.INSTRUMENTS if i.ticker in wide.columns]
+    return wide[order].sort_index().dropna()
+
+
 def write_market_data(
     session: Session,
     raw: pd.DataFrame,
