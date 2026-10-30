@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-canvas text-ink antialiased;
+}
+
+main p a {
+  @apply font-semibold text-sage-600 underline decoration-sage-300 underline-offset-2 hover:text-sage-700;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .card {
+    @apply rounded-card border border-line bg-surface p-5 sm:p-6;
+  }
+  .card-title {
+    @apply text-[17px] font-bold tracking-tight;
+  }
+  .subtle {
+    @apply text-sm text-ink-muted;
+  }
+  .pill {
+    @apply inline-flex min-h-9 items-center rounded-full px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600;
+  }
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600 disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-sage-600 text-white hover:bg-sage-700;
+  }
+  .btn-ghost {
+    @apply btn border border-sage-300 bg-white text-sage-700 hover:bg-sage-50;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
