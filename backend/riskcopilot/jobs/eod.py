@@ -128,6 +128,11 @@ def run_engine_for_date(
                 seed=settings.mc_seed if r.method == "monte_carlo" else None,
             )
         )
+    # No ORM relationship links the tables, so flush the parent rows first: Postgres
+    # checks the foreign key on every insert.
+    session.flush()
+    for r in runs:
+        rid = repo.run_id(d.date(), r.model, r.confidence)
         session.add_all(
             m.RiskContribution(
                 run_id=rid,
