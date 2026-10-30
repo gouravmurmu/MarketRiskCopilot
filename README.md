@@ -80,6 +80,13 @@ FastAPI, read-only over the risk tables (`uvicorn riskcopilot.api.main:app`, doc
 
 `docker compose up` starts Postgres and the API locally.
 
+## Dashboard
+
+Next.js in `frontend/` (see its README): overview with VaR/ES tiles, P&L vs VaR chart, limit
+bars and the "why did VaR move?" waterfall; risk breakdown by position; VaR change detail;
+backtest table for every model; a what-if page with sliders that reprices through the API;
+and data quality. It falls back to labelled demo data when the API is unreachable.
+
 ## Local development
 
 ```bash
@@ -96,4 +103,4 @@ Settings come from environment variables; see `backend/.env.example`. Without
 ## Stack
 
 Python 3.12, NumPy, pandas, SciPy, arch, SQLAlchemy 2 and Alembic on Postgres (Supabase).
-Coming next: FastAPI, Next.js + Tailwind + Recharts, the Claude API, Langfuse.
+FastAPI, Next.js 15 + Tailwind + Recharts. Coming next: the Claude API and Langfuse.
