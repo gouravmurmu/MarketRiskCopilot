@@ -1,0 +1,46 @@
+name: End-of-day risk run
+
+on:
+  schedule:
+    - cron: "0 0 * * 2-6" # 00:00 UTC = 05:30 IST, Tue-Sat, after each US session
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: "As-of date (YYYY-MM-DD). Leave empty for the latest business day."
+        required: false
+
+concurrency:
+  group: eod
+  cancel-in-progress: false
+
+jobs:
+  eod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90 # the first run backfills ten years of history
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+    steps:
+      - name: Check secrets
+        id: guard
+        working-directory: .
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::notice::DATABASE_URL secret is not set; skipping the EOD run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.guard.outputs.skip != 'true'
+      - uses: astral-sh/setup-uv@v6
+        if: steps.guard.outputs.skip != 'true'
+        with:
+          python-version: "3.12"
+      - run: uv sync --locked --no-dev
+        if: steps.guard.outputs.skip != 'true'
+      - run: uv run alembic upgrade head
+        if: steps.guard.outputs.skip != 'true'
+      - run: uv run python -m riskcopilot.jobs.eod ${{ inputs.as_of && format('--as-of {0}', inputs.as_of) || '' }}
+        if: steps.guard.outputs.skip != 'true'
