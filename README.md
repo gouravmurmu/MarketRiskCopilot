@@ -61,7 +61,7 @@ backtests. Data checks (missing, stale, 6-sigma jumps, coverage, forward fills) 
 a critical issue on the as-of date stops the run before any risk number is produced. Every step
 is idempotent, so reruns replace a day's results. The first run backfills from 2015.
 
-It runs on GitHub Actions at 00:00 UTC Tuesday to Saturday (`.github/workflows/eod.yml`).
+It runs on GitHub Actions at 00:23 UTC Tuesday to Saturday (`.github/workflows/eod.yml`).
 
 ## AI copilot
 
@@ -131,7 +131,7 @@ commentary review and sign-off; data quality; and the copilot side panel. It fal
 | Piece | Where | Notes |
 | --- | --- | --- |
 | Database | Supabase Postgres (us-east-1) | Reached through the session pooler (IPv4) |
-| Daily batch + commentary | GitHub Actions, 00:00 UTC Tue to Sat | Backfills ten years (about 2,470 business days) in 8 minutes on first run |
+| Daily batch + commentary | GitHub Actions, 00:23 UTC Tue to Sat | Backfills ten years (about 2,470 business days) in 8 minutes on first run |
 | API | Render, Docker (`backend/Dockerfile`) | Runs migrations on start; CI builds the same image |
 | Dashboard | Vercel (`frontend/`) | `NEXT_PUBLIC_API_URL` points at the API |
 

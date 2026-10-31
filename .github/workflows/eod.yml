@@ -2,7 +2,8 @@ name: End-of-day risk run
 
 on:
   schedule:
-    - cron: "0 0 * * 2-6" # 00:00 UTC = 05:30 IST, Tue-Sat, after each US session
+    # Off the top of the hour: GitHub delays or drops many schedules queued at :00.
+    - cron: "23 0 * * 2-6" # 00:23 UTC = 05:53 IST, Tue-Sat, after each US session
   workflow_dispatch:
     inputs:
       as_of:
