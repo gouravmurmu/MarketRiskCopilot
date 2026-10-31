@@ -7,6 +7,9 @@ Claude-powered copilot to explain the day's move and draft the risk commentary.
 Deterministic models produce every number. The AI only explains them, and a validator plus
 human sign-off sit between its draft and the final report.
 
+**Live demo:** [market-risk-copilot-gules.vercel.app](https://market-risk-copilot-gules.vercel.app)
+(the free API sleeps when idle, so the first load can take about 30 seconds).
+
 > Educational project using only public data. Not investment advice. Not affiliated with
 > any employer.
 
@@ -16,8 +19,8 @@ human sign-off sit between its draft and the final report.
 | --- | --- | --- |
 | 1 | Data pipeline, risk engine, backtests, limits, daily batch | Done |
 | 2 | FastAPI backend and Next.js dashboard | Done |
-| 3 | AI copilot: daily commentary, validator, sign-off, chat | In review |
-| 4 | Deployment, monitoring, showcase | Planned |
+| 3 | AI copilot: daily commentary, validator, sign-off, chat | Done |
+| 4 | Deployment, monitoring, showcase | Done |
 
 ## Portfolio
 
@@ -122,6 +125,19 @@ Next.js in `frontend/` (see its README): overview with VaR/ES tiles, P&L vs VaR 
 bars and the "why did VaR move?" waterfall; risk breakdown by position; VaR change detail;
 backtest table for every model; a what-if page with sliders that reprices through the API;
 commentary review and sign-off; data quality; and the copilot side panel. It falls back to labelled demo data when the API is unreachable.
+
+## Deployment
+
+| Piece | Where | Notes |
+| --- | --- | --- |
+| Database | Supabase Postgres (us-east-1) | Reached through the session pooler (IPv4) |
+| Daily batch + commentary | GitHub Actions, 00:00 UTC Tue to Sat | Backfills ten years (about 2,470 business days) in 8 minutes on first run |
+| API | Render, Docker (`backend/Dockerfile`) | Runs migrations on start; CI builds the same image |
+| Dashboard | Vercel (`frontend/`) | `NEXT_PUBLIC_API_URL` points at the API |
+
+Secrets live only in GitHub Actions and Render settings: `DATABASE_URL`, `ANTHROPIC_API_KEY`,
+optional `FRED_API_KEY`, `EOD_TOKEN` and `APPROVE_TOKEN`. The API's `CORS_ORIGINS` must include
+the dashboard URL.
 
 ## Local development
 
